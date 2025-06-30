@@ -6,6 +6,8 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using FI.AtividadeEntrevista.DML;
+using Newtonsoft.Json;
+using System.Reflection;
 
 namespace WebAtividadeEntrevista.Controllers
 {
@@ -23,10 +25,10 @@ namespace WebAtividadeEntrevista.Controllers
         }
 
         [HttpPost]
-        public JsonResult Incluir(ClienteModel model)
+        public JsonResult Incluir(ClienteModel clienteModel, string beneficiarios)
         {
-            BoCliente bo = new BoCliente();
-            
+            BoCliente boCliente = new BoCliente();
+
             if (!this.ModelState.IsValid)
             {
                 List<string> erros = (from item in ModelState.Values
@@ -38,27 +40,52 @@ namespace WebAtividadeEntrevista.Controllers
             }
             else
             {
-                
-                model.Id = bo.Incluir(new Cliente()
-                {                    
-                    CEP = model.CEP,
-                    Cidade = model.Cidade,
-                    Email = model.Email,
-                    Estado = model.Estado,
-                    Logradouro = model.Logradouro,
-                    Nacionalidade = model.Nacionalidade,
-                    Nome = model.Nome,
-                    Sobrenome = model.Sobrenome,
-                    Telefone = model.Telefone
-                });
 
-           
+                bool verifyCPF = boCliente.VerificarExistencia(clienteModel.CPF);
+
+                if (verifyCPF)
+                {
+                    return Json("CPF já cadastrado");
+                }
+                   
+                else
+                {
+                    clienteModel.Id = boCliente.Incluir(new Cliente()
+                    {
+                        CEP = clienteModel.CEP,
+                        Cidade = clienteModel.Cidade,
+                        Email = clienteModel.Email,
+                        Estado = clienteModel.Estado,
+                        Logradouro = clienteModel.Logradouro,
+                        Nacionalidade = clienteModel.Nacionalidade,
+                        Nome = clienteModel.Nome,
+                        Sobrenome = clienteModel.Sobrenome,
+                        Telefone = clienteModel.Telefone,
+                        CPF = clienteModel.CPF
+                    });
+
+                    List<BeneficiarioModel> beneficiarioModels = JsonConvert.DeserializeObject<List<BeneficiarioModel>>(beneficiarios);
+
+                    BoBeneficiario boBeneficiario = new BoBeneficiario();
+
+                    foreach (var listBeneficiarios in beneficiarioModels)
+                    {
+                        boBeneficiario.Incluir(new Beneficiario()
+                        {
+                            ClienteId = clienteModel.Id,
+                            Nome = listBeneficiarios.Nome,
+                            CPF = listBeneficiarios.CPF
+                        });
+                    }
+                   
+                }
+                       
                 return Json("Cadastro efetuado com sucesso");
             }
         }
 
         [HttpPost]
-        public JsonResult Alterar(ClienteModel model)
+        public JsonResult Alterar(ClienteModel clienteModel, string beneficiarios, string beneficiariosRemovidos)
         {
             BoCliente bo = new BoCliente();
        
@@ -75,18 +102,52 @@ namespace WebAtividadeEntrevista.Controllers
             {
                 bo.Alterar(new Cliente()
                 {
-                    Id = model.Id,
-                    CEP = model.CEP,
-                    Cidade = model.Cidade,
-                    Email = model.Email,
-                    Estado = model.Estado,
-                    Logradouro = model.Logradouro,
-                    Nacionalidade = model.Nacionalidade,
-                    Nome = model.Nome,
-                    Sobrenome = model.Sobrenome,
-                    Telefone = model.Telefone
+                    Id = clienteModel.Id,
+                    CEP = clienteModel.CEP,
+                    Cidade = clienteModel.Cidade,
+                    Email = clienteModel.Email,
+                    Estado = clienteModel.Estado,
+                    Logradouro = clienteModel.Logradouro,
+                    Nacionalidade = clienteModel.Nacionalidade,
+                    Nome = clienteModel.Nome,
+                    Sobrenome = clienteModel.Sobrenome,
+                    Telefone = clienteModel.Telefone,
+                    CPF = clienteModel.CPF
                 });
-                               
+
+                List<BeneficiarioModel> edit = JsonConvert.DeserializeObject<List<BeneficiarioModel>>(beneficiarios);
+                var remove = JsonConvert.DeserializeObject<List<string>>(beneficiariosRemovidos);
+
+                BoBeneficiario boBeneficiario = new BoBeneficiario();
+
+                foreach (var listBeneficiario in edit)
+                {
+                    Beneficiario beneficiario = boBeneficiario.Consultar(clienteModel.Id, listBeneficiario.CPF);
+
+                    if(beneficiario == null)
+                    {
+                        boBeneficiario.Incluir(new Beneficiario()
+                        {
+                            ClienteId = clienteModel.Id,
+                            Nome = listBeneficiario.Nome,
+                            CPF = listBeneficiario.CPF
+                        });
+                    }
+                    else
+                    {
+                        beneficiario.Nome = listBeneficiario.Nome;
+                        beneficiario.CPF = listBeneficiario.CPF;
+
+                        boBeneficiario.Alterar(beneficiario);              
+                    }
+ 
+                }
+
+                foreach (var cpf in remove)
+                {
+                    boBeneficiario.Excluir(clienteModel.Id, cpf);
+                }
+
                 return Json("Cadastro alterado com sucesso");
             }
         }
@@ -104,6 +165,7 @@ namespace WebAtividadeEntrevista.Controllers
                 {
                     Id = cliente.Id,
                     CEP = cliente.CEP,
+                    CPF = cliente.CPF,
                     Cidade = cliente.Cidade,
                     Email = cliente.Email,
                     Estado = cliente.Estado,
@@ -146,5 +208,19 @@ namespace WebAtividadeEntrevista.Controllers
                 return Json(new { Result = "ERROR", Message = ex.Message });
             }
         }
+
+        [HttpGet]
+        public JsonResult ObterBeneficiario(int id)
+        {
+            BoBeneficiario boBeneficiario = new BoBeneficiario();
+
+            var beneficiarios = boBeneficiario.Listar()
+            .Where(b => b.ClienteId == id)
+            .Select(b => new { b.Nome, b.CPF })
+            .ToList();
+
+            return Json(beneficiarios, JsonRequestBehavior.AllowGet);
+        }
+
     }
 }

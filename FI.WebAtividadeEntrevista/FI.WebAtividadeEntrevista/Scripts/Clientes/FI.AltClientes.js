@@ -10,38 +10,66 @@ $(document).ready(function () {
         $('#formCadastro #Cidade').val(obj.Cidade);
         $('#formCadastro #Logradouro').val(obj.Logradouro);
         $('#formCadastro #Telefone').val(obj.Telefone);
+        $('#formCadastro #Cpf').val(obj.CPF);
     }
+
+
+    if (obj.Id) {
+        $.get(`/Cliente/ObterBeneficiario?id=${obj.Id}`, function (beneficiarios) {
+            if (Array.isArray(beneficiarios)) {
+                beneficiarios.forEach(function (b) {
+                    ModalBeneficiarios.getBeneficiarios().push({ Nome: b.Nome, Cpf: b.CPF });
+
+                    const novaLinha = document.createElement('tr');
+                    novaLinha.innerHTML = `
+                            <td>${b.CPF}</td>
+                            <td>${b.Nome}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-info btn-alterar" data-cpf="${b.CPF}">Editar</button>
+                                <button type="button" class="btn btn-sm btn-info btn-remover">Remover</button>
+                            </td>
+                        `;
+                    document.querySelector('#gridBeneficiarios tbody').appendChild(novaLinha);
+                });
+            }
+        });
+    }
+
 
     $('#formCadastro').submit(function (e) {
         e.preventDefault();
-        
+        const formElement = document.getElementById('formCadastro');
+
+
+        const formData = new FormData(formElement);
+
+        const cpf = document.querySelector('#Cpf').value;
+
+        if (!isCpfValido(cpf)) {
+            ModalDialog("Erro:", 'O CPF informado é inválido.');
+            return;
+        }
+        formData.append('beneficiarios', JSON.stringify(ModalBeneficiarios.getBeneficiarios()));
+        formData.append('beneficiariosRemovidos', JSON.stringify(ModalBeneficiarios.getBeneficiariosRemovidos()));
+
         $.ajax({
             url: urlPost,
-            method: "POST",
-            data: {
-                "NOME": $(this).find("#Nome").val(),
-                "CEP": $(this).find("#CEP").val(),
-                "Email": $(this).find("#Email").val(),
-                "Sobrenome": $(this).find("#Sobrenome").val(),
-                "Nacionalidade": $(this).find("#Nacionalidade").val(),
-                "Estado": $(this).find("#Estado").val(),
-                "Cidade": $(this).find("#Cidade").val(),
-                "Logradouro": $(this).find("#Logradouro").val(),
-                "Telefone": $(this).find("#Telefone").val()
-            },
+            method: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
             error:
-            function (r) {
-                if (r.status == 400)
-                    ModalDialog("Ocorreu um erro", r.responseJSON);
-                else if (r.status == 500)
-                    ModalDialog("Ocorreu um erro", "Ocorreu um erro interno no servidor.");
-            },
+                function (r) {
+                    if (r.status == 400)
+                        ModalDialog("Ocorreu um erro", r.responseJSON);
+                    else if (r.status == 500)
+                        ModalDialog("Ocorreu um erro", "Ocorreu um erro interno no servidor.");
+                },
             success:
-            function (r) {
-                ModalDialog("Sucesso!", r)
-                $("#formCadastro")[0].reset();                                
-                window.location.href = urlRetorno;
-            }
+                function (r) {
+                    ModalDialog("Sucesso!", r)
+                    $("#formCadastro")[0].reset();
+                }
         });
     })
     
@@ -69,4 +97,24 @@ function ModalDialog(titulo, texto) {
 
     $('body').append(texto);
     $('#' + random).modal('show');
+}
+
+function isCpfValido(cpf) {
+    cpf = cpf.replace(/\D/g, '');
+
+    if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+
+    const calcularDigito = (base, fator) => {
+        let soma = 0;
+        for (let i = 0; i < base.length; i++) {
+            soma += parseInt(base.charAt(i)) * (fator - i);
+        }
+        let resto = soma % 11;
+        return resto < 2 ? 0 : 11 - resto;
+    };
+
+    const digito1 = calcularDigito(cpf.slice(0, 9), 10);
+    const digito2 = calcularDigito(cpf.slice(0, 9) + digito1, 11);
+
+    return cpf.endsWith(`${digito1}${digito2}`);
 }

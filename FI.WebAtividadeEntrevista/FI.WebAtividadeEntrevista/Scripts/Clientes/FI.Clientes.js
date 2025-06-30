@@ -1,33 +1,40 @@
 ﻿
 $(document).ready(function () {
+    $('#Cpf').mask('000.000.000-00');
+
     $('#formCadastro').submit(function (e) {
         e.preventDefault();
+        const formElement = document.getElementById('formCadastro');
+        const formData = new FormData(formElement);
+
+        const cpf = document.querySelector('#Cpf').value;
+        if (!isCpfValido(cpf)) {
+            ModalDialog("Erro:", 'O CPF informado é inválido.');
+            return;
+        }
+
+        ModalBeneficiarios.iniciar(); 
+
+        formData.append('beneficiarios', JSON.stringify(ModalBeneficiarios.getBeneficiarios()));
+
         $.ajax({
             url: urlPost,
-            method: "POST",
-            data: {
-                "NOME": $(this).find("#Nome").val(),
-                "CEP": $(this).find("#CEP").val(),
-                "Email": $(this).find("#Email").val(),
-                "Sobrenome": $(this).find("#Sobrenome").val(),
-                "Nacionalidade": $(this).find("#Nacionalidade").val(),
-                "Estado": $(this).find("#Estado").val(),
-                "Cidade": $(this).find("#Cidade").val(),
-                "Logradouro": $(this).find("#Logradouro").val(),
-                "Telefone": $(this).find("#Telefone").val()
-            },
+            method: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
             error:
-            function (r) {
-                if (r.status == 400)
-                    ModalDialog("Ocorreu um erro", r.responseJSON);
-                else if (r.status == 500)
-                    ModalDialog("Ocorreu um erro", "Ocorreu um erro interno no servidor.");
-            },
+                function (r) {
+                    if (r.status == 400)
+                        ModalDialog("Ocorreu um erro", r.responseJSON);
+                    else if (r.status == 500)
+                        ModalDialog("Ocorreu um erro", "Ocorreu um erro interno no servidor.");
+                },
             success:
-            function (r) {
-                ModalDialog("Sucesso!", r)
-                $("#formCadastro")[0].reset();
-            }
+                function (r) {
+                    ModalDialog("Sucesso!", r)
+                    $("#formCadastro")[0].reset();
+                }
         });
     })
     
@@ -50,9 +57,29 @@ function ModalDialog(titulo, texto) {
         '                                                                                                                   ' +
         '                </div>                                                                                             ' +
         '            </div><!-- /.modal-content -->                                                                         ' +
-        '  </div><!-- /.modal-dialog -->                                                                                    ' +
+        '  </div><!-- /.modal-dialog -->                                                                                    ' 
         '</div> <!-- /.modal -->                                                                                        ';
 
     $('body').append(texto);
     $('#' + random).modal('show');
+}
+
+function isCpfValido(cpf) {
+    cpf = cpf.replace(/\D/g, '');
+
+    if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+
+    const calcularDigito = (base, fator) => {
+        let soma = 0;
+        for (let i = 0; i < base.length; i++) {
+            soma += parseInt(base.charAt(i)) * (fator - i);
+        }
+        let resto = soma % 11;
+        return resto < 2 ? 0 : 11 - resto;
+    };
+
+    const digito1 = calcularDigito(cpf.slice(0, 9), 10);
+    const digito2 = calcularDigito(cpf.slice(0, 9) + digito1, 11);
+
+    return cpf.endsWith(`${digito1}${digito2}`);
 }

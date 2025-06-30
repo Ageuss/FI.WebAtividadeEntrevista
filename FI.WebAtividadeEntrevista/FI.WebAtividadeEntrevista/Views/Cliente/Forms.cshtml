@@ -4,7 +4,7 @@
         <div class="col-md-12">
             <div class="form-group">
                 <label for="Nome">Nome:</label>
-                <input required="required" type="text" class="form-control" id="Nome" name="Nome" placeholder="Ex.: João" maxlength="50">
+                <input required="required" type="text" class="form-control" id="Nome" name="Nome" placeholder="Ex.: Maria" maxlength="50">
             </div>
         </div>
     </div>
@@ -13,6 +13,12 @@
             <div class="form-group">
                 <label for="Sobrenome">Sobrenome:</label>
                 <input required="required" type="text" class="form-control" id="Sobrenome" name="Sobrenome" placeholder="Ex.: da Silva" maxlength="255">
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="CPF">CPF:</label>
+                <input required="required" type="text" class="form-control" id="Cpf" name="Cpf" placeholder="000.00.000-00" maxlength="255">
             </div>
         </div>
         <div class="col-md-6">
@@ -81,5 +87,75 @@
         </div>
     </div>
 
-
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="pull-left" style="margin-top: -30px;">
+                <button type="button" class="btn btn-sm btn-info" data-toggle="modal" data-target="#modalBeneficiarios">
+                    Beneficiários
+                </button>
+            </div>
+        </div>
+    </div>
 </form>
+
+<div class="modal fade" id="modalBeneficiarios" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Beneficiários</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fechar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-row align-items-end">
+                    <div class="form-group col-md-4">
+                        <label for="CpfBenef"><strong>CPF</strong></label>
+                        <input required="required" type="text" class="form-control border-secondary" id="CpfBenef" placeholder="Ex: 010.011.111-00">
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="NomeBenef"><strong>Nome</strong></label>
+                        <input  required="required" type="text" class="form-control border-secondary" id="NomeBenef" placeholder="Ex: Maria">
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label></label>
+                        <button type="button" class="btn btn-success  btn-block" id="btnAdicionarBenef">
+                            <i class="fas fa-plus-circle mr-1"></i> Incluir
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive mt-3">
+                    <table class="table table-bordered table-striped" id="gridBeneficiarios">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>CPF</th>
+                                <th>Nome</th>
+                                <th style="width: 150px;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+<script src="~/Scripts/Clientes/FI.ModalBeneficiarios.js"></script>
+
+<script>
+    ModalBeneficiarios.iniciar();
+</script>
+
+
+
+
